@@ -1,0 +1,30 @@
+This is a sample input file for the program.
+The program will parse this file for lines beginning with the accepted flags and then isolate the values the flag indicates.
+The order of the lines don't matter.
+The parser will interpret the first string of a line as the flag and compare it to a list of known flags.
+The parser is case sensitive.
+If the flag doesn't match the line will be ignored. These lines can thus serve as comment lines.
+If the flag is recognized, then the next string (seperated by whitespace) after the flag will be interpretted as the value.
+If the value cannot be interpreted properly (for instance, it is a string when it should be an integer), undefined behavior may result.
+The remainder of the line after the value will not be parsed and can also be used for comments.
+There are no default values for any parameters, and all must be supplied correctly.
+In particular, the parameters describing the size of the input arrays (XAS and XPS) must be correct, or undefined (probably memory errors) behavior may result.
+The flags are as follows (note the # beginning the lines so that they are not interpreted as actual flags):
+# XPSFILE = (string) the file where the XPS data will be read in from
+# XASFILE = (string) the file where the XAS data will be read in from
+# OUTFILE = (string) the file where the output will be written to
+# num_w_steps = (int) the number of frequency steps we compute the convolution for. Must be >= 3.
+# num_xas_steps = (int) the number of entries in the xas input file. Must be >= 3.
+# num_xps_steps = (int) the number of entries in the xps input file. Must be >= 3.
+# min_w = (double) the minimum frequency we compute the convolution for. Must be less than max_w.
+# max_w = (double) the minimum frequency we compute the convolution for. Must be greater than min_w.
+
+This file may be parsed with the values as below without issue (due to the flag - value nature of the parser).
+XPSFILE ./XPS.dat It will read data in from XPS.dat in the current directory
+XASFILE ./XAS.dat Same, but for XAS.dat
+OUTFILE ./convXAS.dat The output filename (written to the current directory)
+num_w_steps 4000
+min_w -20 These are in the same units as the frequencies in XAS/XPS.dat 
+max_w 200 They should be adjusted depending on the desired range and data from XAS/XPS
+num_xps_steps 4000  We assume there are 4000 entries in the xps file. This must be changed to match the actual value
+num_xas_steps 4000 Same, but for XAS
