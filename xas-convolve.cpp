@@ -39,7 +39,7 @@ void parseInt(string label, string value, string flag, int & variable){
 double linearInterpolate(double x, double x1, double f1, double x2, double f2){
   //Given x, x1, x2, f1, f2, this will interpolate f(x) as:
   //f(x) = f1 if x<=x1
-  //f(x) = f1 + f2*(x-x1)/(x2-x1) if x1<x<x2
+  //f(x) = f1 + (f2-f1)*(x-x1)/(x2-x1) if x1<x<x2
   //f(x) = f2 if x>=x2
   if(x<=x1){
     return f1;
@@ -48,7 +48,7 @@ double linearInterpolate(double x, double x1, double f1, double x2, double f2){
     return f2;
   }
   else{
-    return f1+f2*(x-x1)/(x2-x1);  //Note this is not safe against x2=x1==> division by zero error
+    return f1+(f2-f1)*(x-x1)/(x2-x1);  //Note this is not safe against x2=x1==> division by zero error
   }
 }
 
