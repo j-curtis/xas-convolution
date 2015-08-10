@@ -20,11 +20,22 @@ The flags are as follows (note the # beginning the lines so that they are not in
 # max_w = (double) the minimum frequency we compute the convolution for. Must be greater than min_w.
 
 This file may be parsed with the values as below without issue (due to the flag - value nature of the parser).
-XPSFILE ./XPS.dat It will read data in from XPS.dat in the current directory
-XASFILE ./XAS.dat Same, but for XAS.dat
-OUTFILE ./convXAS.dat The output filename (written to the current directory)
-num_w_steps 4000
-min_w -20 These are in the same units as the frequencies in XAS/XPS.dat 
-max_w 200 They should be adjusted depending on the desired range and data from XAS/XPS
-num_xps_steps 4000  We assume there are 4000 entries in the xps file. This must be changed to match the actual value
-num_xas_steps 4000 Same, but for XAS
+################
+##PARAMETERS####
+################
+
+XPSFILE ./xps.dat 
+
+XASFILE ./xas.dat
+
+OUTFILE ./xas_manybody.dat 
+
+num_w_steps 10000
+
+num_xps_steps 5000  
+
+num_xas_steps 4078 
+
+min_w 400.0
+
+max_w 600.0
