@@ -235,7 +235,7 @@ int main(int argc, char * argv []){
   //We use linear interpolation
   double * xps_snapped = new double[num_w_steps];
   double * xas_snapped = new double[num_w_steps];
-
+ 
   for(int i = 0; i < num_w_steps; i++){
     //First we compute the snapped to grid index for the xas and xps 
     double w = out_freqs[i];  //The value of the frequency we are trying to interpolate to
