@@ -1,5 +1,5 @@
 # xas-convolution
-Code for computing the convolution of the single particle XAS with the XPS
+## Code for computing the convolution of the single particle XAS with the XPS
 
 This will contain code written in C++ that is designed to perform the convolution of the spectral function (XPS) and the XAS, both as functions of frequency. 
 
