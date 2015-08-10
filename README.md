@@ -18,3 +18,4 @@ Currently, the way the array is generated is by using user input for the size (n
 Currently, there is no algorithm implemented to determine a good range, so it is somewhat arbitrary and must be user tuned to get a good plot range. 
 
 It also does not implement trapezoidal rule and may also be prone to Gibbs phenomenon near large jumps in the spectrum. 
+
