@@ -9,6 +9,7 @@
 #include <string>
 #include <cmath>
 #include <complex>
+#include <cstdlib>
 using namespace std;
 
 //These are methods for parsing the data file
@@ -112,11 +113,11 @@ int main(int argc, char * argv []){
   
   //Now we parse for these values
   ifstream infile(argv[1]);
-  string inline;
-  while(getline(infile,inline)){
+  string infileline;
+  while(getline(infile,infileline)){
     //We parse for tokens of label, values pairs
     string label, value;
-    istringstream ss(inline); //This is what actually breaks the line into tokens
+    istringstream ss(infileline); //This is what actually breaks the line into tokens
     ss>>label>>value;
     //We use the variable name as a label 
     parseStr(label,value,"XPSFILE",XPSFILE);
@@ -159,7 +160,7 @@ int main(int argc, char * argv []){
   out = new double[num_w_steps];  //This will be generated from the convolution
   
   //Open up XPS and XAS files and read the data in
-  ifstream xpsfile(XPSFILE);
+  ifstream xpsfile(XPSFILE.c_str());
   string xpsline;
   int xpscount = 0; //To increment through each line of the array that we are filling
   while(getline(xpsfile,xpsline)){
@@ -170,11 +171,11 @@ int main(int argc, char * argv []){
     //We only want the first token (frequency), and the third token (xps)
     xps_freqs[xpscount] = atof(token1.c_str()); //We must also convert it to a double 
     xps[xpscount] = atof(token3.c_str()); //We must also convert this to a double 
-    xpscounter++; //Increment the counter
+    xpscount++; //Increment the counter
   }
   xpsfile.close();  //Close the file
   
-  ifstream xasfile(XASFILE);
+  ifstream xasfile(XASFILE.c_str());
   string xasline;
   int xascount = 0; //To increment through each line of the array that we are filling
   while(getline(xasfile,xasline)){
@@ -184,7 +185,7 @@ int main(int argc, char * argv []){
     ss>>token1>>token2;
     xas_freqs[xascount] = atof(token1.c_str()); //We must also convert it to a double 
     xas[xascount] = atof(token2.c_str()); //We must also convert this to a double 
-    xascounter++; //Increment the counter
+    xascount++; //Increment the counter
   }
   xasfile.close();  //Close the file
   
@@ -193,7 +194,7 @@ int main(int argc, char * argv []){
   //We do NOT use trapezoidal rule
   //We precompute delta_w for convinience
   //We also use this loop to output the results to the output file, to save on the number of loops
-  ofstream outfile(OUTFILE);
+  ofstream outfile(OUTFILE.c_str());
   
   double delta_w = out_freqs[1]-out_freqs[0];
   
@@ -206,7 +207,7 @@ int main(int argc, char * argv []){
       //We compute the snapped to grid value of j for the xas and xps grids 
       //We also need i snapped to the xas grid (to compute xas(w-w') )
       double w = out_freqs[i];  //The value of w
-      double u - out_freqs[j];  //The value of w'
+      double u = out_freqs[j];  //The value of w'
       
       int j_xps = snapToGrid(u,num_xps_steps,xps_freqs); //The value of j snapped to the xps grid
       //Thus, j_xps is between 0 and num_xps_steps - 1
@@ -238,7 +239,7 @@ int main(int argc, char * argv []){
     }
     
     //And we write this term to a file
-    outfile<<out_freq[i]<<" "<<out[i]<<endl;
+    outfile<<out_freqs[i]<<" "<<out[i]<<endl;
   }
   //And we close the output file
   outfile.close();
@@ -253,6 +254,3 @@ int main(int argc, char * argv []){
   
   return 0;
 }
-
-
-
