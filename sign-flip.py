@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #This is a simple python script that will flip the sign and center the xps spectral function
 #Jonathan Curtis
 #08/10/15
@@ -8,7 +9,7 @@ import sys
 def main():
   #We count the arguments passed
   argc = len(sys.argv)
-  if not argv == 1:
+  if not argc == 3:
     print "Implementation error. Usage is 'program_name' 'inputxps.dat' 'outputxps.dat' "
     return 1
   
@@ -45,8 +46,3 @@ def main():
 if __name__ == "__main__":
   main()
   
-  
-  
-  
-  
-    
