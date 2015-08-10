@@ -11,7 +11,7 @@ The XAS file should have 2 columns. The first is the frequency and the second is
 
 The XPS file should have 3 columns. The first is the frequency, the second is the real part of the XPS, and the third column is the imaginary part (the spectral function).
 
-The program xas-convolve is expecting that the spectral function have it's *main peak centered at zero with satellite peaks located at higher energies*. 
+The program xas-convolve is expecting that the spectral function have it's **main peak centered at zero with satellite peaks located at higher energies**. 
 
 If this is not the case, run the python shell script flip-sign.py on the data first. 
 
