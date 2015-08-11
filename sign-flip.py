@@ -5,6 +5,7 @@
 
 import numpy as np
 import sys 
+import math
 
 def main():
   #We count the arguments passed
@@ -36,9 +37,11 @@ def main():
   
   #Now we subtract this and flip the frequencies 
   data[:,0] = -(data[:,0] - location)
-  
+
+
   #And we print the data
-  np.savetxt(xpsout,data,delimiter = " ")
+  #We flip the order the rows appear in so that it reads from smallest to largest 
+  np.savetxt(xpsout,np.flipud(data),delimiter = " ")
   
   #And we close
   return 0
