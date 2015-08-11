@@ -276,7 +276,7 @@ int main(int argc, char * argv []){
     //out(w) = int_{wmin}^{wmax} du' xps(u)xas(w-u)
     //Because we have already interpolated xas and xps onto the same grid, we simply implement discrete convolution of 
     //out[i] = sum_j delta xps[j]*xas[i-j]
-    for(int j = 0; j <= i; j++){
+    for(int j = 0; j < num_w_steps; j++){
       //We only add if i - j > 0. Otherwise we approximate xas[- |i-j| ] = xas[0]
       if((i-j)<0){
         out[i] += delta_w_out * xps_snapped[j] * xas_snapped[0];
