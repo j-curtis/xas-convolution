@@ -84,6 +84,25 @@ double * genGrid(int Num, double min, double max){
   return val;
 }
 
+//This function will locate the first local max in an array using a simple "walkthrough" technique
+//It will return the index of the first max. If there is no local max, it will return 0
+//To filter out roundoff error and small fluctuations, we require it to be larger than MULTIPLE neighbors
+int locateFirstMax(int size, double * values){
+  for(int i = 2; i < size-2; i++){
+    //We step through and check to see if an element is greater than all of its neighbors
+    //To minimize floating point erros we will multiply each element by 10^12 and then compare the results cast as integers
+    //We do this by multiplying by 10000 and then casting as an int and then comparing the integers
+    bool nneighbor_check = ( ( int(1e12*values[i]) > int(1e12*values[i-1]) ) && ( int(1e12*values[i]) > int(1e12*values[i+1]) ) );
+    bool nnneighbor_check = ( ( int(1e12*values[i]) > int(1e12*values[i-2]) ) && ( int(1e12*values[i]) > int(1e12*values[i+2]) ) );
+
+    if(nneighbor_check && nnneighbor_check){
+      return i;
+    } 
+  }
+  return 0;
+}
+
+
 //Now the main method
 int main(int argc, char * argv []){
   //We check to make sure they have the right number of arguments
@@ -265,8 +284,7 @@ int main(int argc, char * argv []){
   //Now all the data arrays have been filled, we may perform the convolution
   //We use a double loop to implement the integral
   //We do NOT use trapezoidal rule
-  //We also use this loop to output the results to the output file, to save on the number of loops
-  ofstream outfile(OUTFILE.c_str());
+  
   //We also allocate the output array
   out = new double[num_w_steps];
   
@@ -285,9 +303,18 @@ int main(int argc, char * argv []){
         out[i] += delta_w_out * xps_snapped[j] * xas_snapped[i-j];
       }
     }
-    
-    //And we write this term to a file. We also print the snapped xas and xps
-    outfile<<out_freqs[i]<<" "<<out[i]<<" "<<xps_snapped[i]<<" "<<xas_snapped[i]<<endl;
+  }
+
+  //Now we find the location of the first peak and we subtract off the frequency
+  int peak_index = locateFirstMax(num_w_steps,out);
+ 
+  double peak_freq = out_freqs[peak_index]; //This is where the peak occurs
+  //We use this loop to output the results to the output file, to save on the number of loops
+  //We also use this loop to subtract off the first peaks location
+  ofstream outfile(OUTFILE.c_str());
+  for(int i = 0; i < num_w_steps; i++){
+    //We also print the snapped xas and xps
+    outfile<<out_freqs[i]-peak_freq<<" "<<out[i]<<" "<<xps_snapped[i]<<" "<<xas_snapped[i]<<endl;
   }
   //And we close the output file
   outfile.close();

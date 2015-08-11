@@ -24,11 +24,11 @@ This file may be parsed with the values as below without issue (due to the flag 
 ##PARAMETERS####
 ################
 
-XPSFILE ./xps.dat 
+XPSFILE ./xps_out.dat 
 
 XASFILE ./xas.dat
 
-OUTFILE ./xas_manybody.dat 
+OUTFILE ./manybody_xas.dat 
 
 num_w_steps 10000
 
