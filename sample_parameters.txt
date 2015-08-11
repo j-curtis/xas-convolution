@@ -24,7 +24,7 @@ This file may be parsed with the values as below without issue (due to the flag 
 ##PARAMETERS####
 ################
 
-XPSFILE ./xps_out.dat 
+XPSFILE ./xps.dat 
 
 XASFILE ./xas.dat
 
@@ -36,6 +36,6 @@ num_xps_steps 5000
 
 num_xas_steps 4078 
 
-min_w 400.0
+min_w -600.0
 
 max_w 600.0

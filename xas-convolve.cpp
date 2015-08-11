@@ -215,6 +215,45 @@ int main(int argc, char * argv []){
   }
   xasfile.close();  //Close the file
 
+  //Now we need to flip the xps and center it and center the xas as well
+  //First we locate the first peak of the xas
+  int xas_fp = locateFirstMax(num_xas_steps,xas);
+  double xas_fpw = xas_freqs[xas_fp];
+  //We subtract the peak frequency from each frequency
+  for(int i = 0; i < num_xas_steps; i++){
+    xas_freqs[i] -= xas_fpw;
+  }
+
+  //Now we reflect the xps about zero (so that the main peak is also the first peak)
+  //To do this, we first reflect the frequencies by multipliying by -1
+  //Then we re-order both the xps and xps_freqs array so that they read in the opposite order as they do now 
+  //The swap takes celing(N/2) operations and during each, we also multiply
+  for(int i = 0; i < num_xps_steps/2.0; i++){
+    double tmp_w; //Used to store the frequency of the element we are swapping out
+    double tmp_x; //Used to store the xps of the element we are swapping out
+
+    tmp_w = xps_freqs[i];
+    tmp_x = xps[i];
+
+    xps_freqs[i] = - xps_freqs[num_xps_steps-1-i];  //We go from the back to the front, also flipping sign as we go
+    xps[i] = xps[num_xps_steps-1-i];  //We don't flip the sign for the xps value
+
+    //Finally, we replace the last values with the temp values
+    xps_freqs[num_xps_steps-1-i] = tmp_w;
+    xps[num_xps_steps-1-i] = tmp_x;
+  }
+
+  //Now we locate the max and subtract it off
+  int xps_fp = locateFirstMax(num_xps_steps,xps);
+  double xps_fpw = xps_freqs[xps_fp];
+
+  //We subtract off using a loop
+  for(int i = 0; i < num_xps_steps; i++){
+    xps_freqs[i] -= xps_fpw;
+  }
+
+  //Now both functions should have their first peak at zero
+
   //Next we must linearly interpolate them onto the same frequency arrays 
   //We will make the largest possible range from the user provided input and the data input 
   //First we comute the input spacings, maxs, and mins
