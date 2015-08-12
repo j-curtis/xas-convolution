@@ -121,6 +121,8 @@ int main(int argc, char * argv []){
   double * xps;   //The input xps values for each frequency
   double * xas_freqs; //The frequencies for the input xas
   double * xas;   //The input xas values for each frequency
+  double * xps_snapped; //This will be the xps interpolated onto the output grid size
+  double * xas_snapped; //This will be the xas interpolated onto the output grid size
   double * out_freqs; //The output frequencies
   double * out;   //The output values at each frequency
 
@@ -140,18 +142,12 @@ int main(int argc, char * argv []){
     parseStr(label,value,"XPSFILE",XPSFILE);
     parseStr(label,value,"XASFILE",XASFILE);
     parseStr(label,value,"OUTFILE",OUTFILE);
-    
-    //parseInt(label,value,"num_w_steps",num_w_steps); 
-    //parseDbl(label,value,"min_w",min_w);
-    //parseDbl(label,value,"max_w",max_w);   
-    //parseInt(label,value,"num_xps_steps",num_xps_steps);
-    //parseInt(label,value,"num_xas_steps",num_xas_steps);
   }
   infile.close();
 
   //Automatic detection of array sizes
   //This increments a counter for every line in the file, which will yield the array size for us
-  ifstream xpssize(XPSFILE);
+  ifstream xpssize(XPSFILE.c_str());
   string line;
   int xpslinecounter = 0;
   while(getline(xpssize,line)){
@@ -163,7 +159,7 @@ int main(int argc, char * argv []){
 
   //Same for xas
   //We use the same line string to save on memory and variable number
-  ifstream xassize(XASFILE);
+  ifstream xassize(XASFILE.c_str());
   int xaslinecounter = 0;
   while(getline(xassize,line)){
     xaslinecounter++;
@@ -213,7 +209,6 @@ int main(int argc, char * argv []){
   //First we locate the first peak of the xas
   int xas_fp = locateFirstMax(num_xas_steps,xas);
   double xas_fpw = xas_freqs[xas_fp];
-  cout<<xas_fpw<<endl;
   //We subtract the peak frequency from each frequency
   for(int i = 0; i < num_xas_steps; i++){
     xas_freqs[i] -= xas_fpw;
@@ -241,7 +236,6 @@ int main(int argc, char * argv []){
   //Now we locate the max and subtract it off
   int xps_fp = locateFirstMax(num_xps_steps,xps);
   double xps_fpw = xps_freqs[xps_fp];
-  cout<<xps_fpw<<endl;
   //We subtract off using a loop
   for(int i = 0; i < num_xps_steps; i++){
     xps_freqs[i] -= xps_fpw;
@@ -249,34 +243,51 @@ int main(int argc, char * argv []){
   //Now both functions should have their first peak at zero
 
   //Next we must linearly interpolate them onto the same frequency arrays 
-  //We interpolate the XAS onto the XPS grid
-  //First we allocate the output arrays
-
-  num_w_steps = num_xps_steps;  //We use the same size array, but this new variable will make it more clear when we are looping
+  //We use the relation that, if one has arrays 
+  // h[n] = f[h]*g[n] 
+  //With sizes Nh, Nf, and Ng, respectively, then 
+  //Nh = Nf+Ng-1
+  //In this case, we will be using Nf=Ng=num_xps_steps
+  num_w_steps = 2*num_xps_steps-1;  //We use the same size array, but this new variable will make it more clear when we are looping
 
   out_freqs = new double[num_w_steps];
   out = new double[num_w_steps];
 
+  //We generate the output frequencies by starting from xps_freqs[0] and using delta_w_xps to go 2*num_xps_steps-1
+  double delta_w = xps_freqs[1] - xps_freqs[0];
+
   for(int i = 0; i < num_w_steps; i++){
-    out_freqs[i] = xps_freqs[i];
+    out_freqs[i] = xps_freqs[0] + double(i)*delta_w;
+    out[i] = 0.0; //We also initialize the ouput array values to zero, just in case they aren't already.
   }
 
-  //Now we snap the xas onto this grid 
-  //We use linear interpolation
-  double * xas_snapped = new double[num_w_steps];
- 
+
+  //To implement this algorithm we snap the XAS and XPS onto the output grid
+  //For the XPS this is just zero padding the end of the array (so it has the correct size)
+  //For this XAS this is interpolating and then zero padding (or padding with the last value
+  //We use linear interpolation when appropriate
+  xas_snapped = new double[num_w_steps];
+  xps_snapped = new double[num_w_steps];
+
   for(int i = 0; i < num_w_steps; i++){
-    //First we compute the snapped to grid index for the xas and xps 
+    //First we compute the snapped to grid index for the xas
     double w = out_freqs[i];  //The value of the frequency we are trying to interpolate to
     int xas_index = snapToGrid(w,num_xas_steps,xas_freqs);  //The corresponding snapped index on the xas grid
     //Can range from 0 to num_xas_steps-1
-
-    //Repeat for the xas
+    //Interpolate the XAS onto the value w
     if(xas_index != num_xas_steps-1){
       xas_snapped[i] = linearInterpolate(w,xas_freqs[xas_index],xas[xas_index],xas_freqs[xas_index+1],xas[xas_index+1]);
     }
     else{
       xas_snapped[i] = xas[num_xas_steps-1];
+    }
+
+    //Copy the XPS if it is in the original range, otherwise we just zero pad
+    if(i<num_xps_steps){
+      xps_snapped[i] = xps[i];
+    }
+    else{
+      xps_snapped[i] = 0.0;
     }
 
   }
@@ -285,36 +296,28 @@ int main(int argc, char * argv []){
   //We use a double loop to implement the integral
   //We do NOT use trapezoidal rule
   //Now we use the formula
-  //out(w) = int_{wmin}^{wmax} du' xps(u)xas(w-u)
+  //out(w) = int_{wmin}^{wmax} du' xps(w-u)xas(u)
   //Because we have already interpolated xas and xps onto the same grid, we simply implement discrete convolution of 
-  //out[i] = sum_j delta xps[j]*xas[i-j]
+  //out[i] = sum_j delta xps[i-j]*xas[j]
 
-  double delta_w = out_freqs[1] - out_freqs[0];
   for(int i = 0; i < num_w_steps; i++){
-    out[i] = 0.0; //We initialize to zero
-    for(int j = 0; j < num_w_steps; j++){
-      //We only add if i - j > 0. Otherwise we approximate xas[- |i-j| ] = xas[0]
-      if((i-j)<0){
-        out[i] += delta_w * xps[j] * xas_snapped[0];
-      }
-      else{
-        out[i] += delta_w * xps[j] * xas_snapped[i-j];
-      }
+    for(int j = 0; j <= i; j++){  //By only summing j up to i, we use xps[i-j] = 0.0 for i-j < 0
+      out[i] += delta_w * xps_snapped[i-j] * xas_snapped[j]; 
     }
   }
 
-  /*
+  
   //Now we find the location of the first peak and we subtract off the frequency
   int peak_index = locateFirstMax(num_w_steps,out);
  
   double peak_freq = out_freqs[peak_index]; //This is where the peak occurs
   //We use this loop to output the results to the output file, to save on the number of loops
   //We also use this loop to subtract off the first peaks location
-  */
+  
   ofstream outfile(OUTFILE.c_str());
   for(int i = 0; i < num_w_steps; i++){
     //We also print the snapped xas and xps
-    outfile<<out_freqs[i]<<" "<<out[i]<<" "<<xps[i]<<" "<<xas_snapped[i]<<endl;
+    outfile<<out_freqs[i]-peak_freq<<" "<<out[i]<<" "<<xps_snapped[i]<<" "<<xas_snapped[i]<<endl;
   }
   //And we close the output file
   outfile.close();
@@ -327,6 +330,7 @@ int main(int argc, char * argv []){
   delete [] out_freqs;
   delete [] out;
   delete [] xas_snapped;
+  delete [] xps_snapped;
   
   return 0;
 }
