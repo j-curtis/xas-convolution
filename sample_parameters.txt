@@ -13,11 +13,8 @@ The flags are as follows (note the # beginning the lines so that they are not in
 # XPSFILE = (string) the file where the XPS data will be read in from
 # XASFILE = (string) the file where the XAS data will be read in from
 # OUTFILE = (string) the file where the output will be written to
-# num_w_steps = (int) the number of frequency steps we compute the convolution for. Must be >= 3.
 # num_xas_steps = (int) the number of entries in the xas input file. Must be >= 3.
 # num_xps_steps = (int) the number of entries in the xps input file. Must be >= 3.
-# min_w = (double) the minimum frequency we compute the convolution for. Must be less than max_w.
-# max_w = (double) the minimum frequency we compute the convolution for. Must be greater than min_w.
 
 This file may be parsed with the values as below without issue (due to the flag - value nature of the parser).
 ################

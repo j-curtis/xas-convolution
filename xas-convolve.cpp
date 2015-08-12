@@ -144,10 +144,33 @@ int main(int argc, char * argv []){
     //parseInt(label,value,"num_w_steps",num_w_steps); 
     //parseDbl(label,value,"min_w",min_w);
     //parseDbl(label,value,"max_w",max_w);   
-    parseInt(label,value,"num_xps_steps",num_xps_steps);
-    parseInt(label,value,"num_xas_steps",num_xas_steps);
+    //parseInt(label,value,"num_xps_steps",num_xps_steps);
+    //parseInt(label,value,"num_xas_steps",num_xas_steps);
   }
   infile.close();
+
+  //Automatic detection of array sizes
+  //This increments a counter for every line in the file, which will yield the array size for us
+  ifstream xpssize(XPSFILE);
+  string line;
+  int xpslinecounter = 0;
+  while(getline(xpssize,line)){
+    xpslinecounter++;
+  }
+  xpssize.close();
+
+  num_xps_steps = xpslinecounter;
+
+  //Same for xas
+  //We use the same line string to save on memory and variable number
+  ifstream xassize(XASFILE);
+  int xaslinecounter = 0;
+  while(getline(xassize,line)){
+    xaslinecounter++;
+  }
+  xassize.close();
+
+  num_xas_steps = xaslinecounter;
   
   //Allocation of data arrays
   xps_freqs = new double[num_xps_steps];
@@ -224,7 +247,7 @@ int main(int argc, char * argv []){
     xps_freqs[i] -= xps_fpw;
   }
   //Now both functions should have their first peak at zero
-  
+
   //Next we must linearly interpolate them onto the same frequency arrays 
   //We interpolate the XAS onto the XPS grid
   //First we allocate the output arrays
@@ -280,16 +303,18 @@ int main(int argc, char * argv []){
     }
   }
 
+  /*
   //Now we find the location of the first peak and we subtract off the frequency
   int peak_index = locateFirstMax(num_w_steps,out);
  
   double peak_freq = out_freqs[peak_index]; //This is where the peak occurs
   //We use this loop to output the results to the output file, to save on the number of loops
   //We also use this loop to subtract off the first peaks location
+  */
   ofstream outfile(OUTFILE.c_str());
   for(int i = 0; i < num_w_steps; i++){
     //We also print the snapped xas and xps
-    outfile<<out_freqs[i]-peak_freq<<" "<<out[i]<<" "<<xps[i]<<" "<<xas_snapped[i]<<endl;
+    outfile<<out_freqs[i]<<" "<<out[i]<<" "<<xps[i]<<" "<<xas_snapped[i]<<endl;
   }
   //And we close the output file
   outfile.close();
