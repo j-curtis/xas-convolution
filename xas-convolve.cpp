@@ -255,14 +255,6 @@ int main(int argc, char * argv []){
     xps_freqs[i] -= xps_fpw;
   }
 
-  //And we do the same for the xas 
-  int xas_fp = locateFirstMax(num_xas_steps,xas);
-  double xas_fpw = xas_freqs[xas_fp];
-
-  for(int i = 0; i < num_xas_steps; i++){
-    xas_freqs[i] -= xas_fpw;
-  }
-
   //Now both functions should have their first peak at zero
 
   //Next we must linearly interpolate them onto the same frequency arrays 
