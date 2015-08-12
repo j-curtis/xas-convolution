@@ -227,15 +227,18 @@ int main(int argc, char * argv []){
   //Now we reflect the xps about zero (so that the main peak is also the first peak)
   //To do this, we first reflect the frequencies by multipliying by -1
   //Then we re-order both the xps and xps_freqs array so that they read in the opposite order as they do now 
-  //The swap takes celing(N/2) operations and during each, we also multiply
-  for(int i = 0; i < num_xps_steps/2.0; i++){
+  for(int i = 0; i < num_xps_steps; i++){
+    xps_freqs[i] *= -1.0;
+  }
+  //Now we reorder
+  for(int i = 0; i < int(num_xps_steps/2.0); i++){
     double tmp_w; //Used to store the frequency of the element we are swapping out
     double tmp_x; //Used to store the xps of the element we are swapping out
 
     tmp_w = xps_freqs[i];
     tmp_x = xps[i];
 
-    xps_freqs[i] = - xps_freqs[num_xps_steps-1-i];  //We go from the back to the front, also flipping sign as we go
+    xps_freqs[i] = xps_freqs[num_xps_steps-1-i];  //We go from the back to the front, also flipping sign as we go
     xps[i] = xps[num_xps_steps-1-i];  //We don't flip the sign for the xps value
 
     //Finally, we replace the last values with the temp values
@@ -250,6 +253,14 @@ int main(int argc, char * argv []){
   //We subtract off using a loop
   for(int i = 0; i < num_xps_steps; i++){
     xps_freqs[i] -= xps_fpw;
+  }
+
+  //And we do the same for the xas 
+  int xas_fp = locateFirstMax(num_xas_steps,xas);
+  double xas_fpw = xas_freqs[xas_fp];
+
+  for(int i = 0; i < num_xas_steps; i++){
+    xas_freqs[i] -= xas_fpw;
   }
 
   //Now both functions should have their first peak at zero
@@ -272,12 +283,14 @@ int main(int argc, char * argv []){
   cout<<"max_w_xas "<<max_w_xas<<endl;
   max_w_out = max(max_w, max(max_w_xps,max_w_xas) );
   cout<<"max_w_out "<<max_w_out<<endl;
+  cout<<endl;
 
   cout<<"min_w "<<min_w<<endl;
   cout<<"min_w_xps "<<min_w_xps<<endl;
   cout<<"min_w_xas "<<min_w_xas<<endl;
   min_w_out = min(min_w, min(min_w_xps,min_w_xas) );
   cout<<"min_w_out "<<min_w_out<<endl;
+  cout<<endl;
 
   //Now we generate the grid
   out_freqs = genGrid(num_w_steps,min_w_out,max_w_out);
