@@ -30,12 +30,6 @@ XASFILE ./xas.dat
 
 OUTFILE ./manybody_xas.dat 
 
-num_w_steps 10000
-
 num_xps_steps 5000  
 
 num_xas_steps 4078 
-
-min_w -600.0
-
-max_w 600.0

@@ -124,21 +124,6 @@ int main(int argc, char * argv []){
   double * out_freqs; //The output frequencies
   double * out;   //The output values at each frequency
 
-  //These are the spacings of each array
-  //double delta_w_xps; //The xps frequency spacing
-  //double delta_w_xas; //The xas frequency spacing
-  double delta_w_out; //The output frequency spacing
-
-  //These are the minimum and maximum frequencies in each array
-  //double max_w_xps; //The max frequency from the xps
-  //double min_w_xps; //The min frequency from the xps
-  //double max_w_xas; //The max frequency from the xas
-  //double min_w_xas; //The min frequency from the xas
-  //double max_w; //The user input value of the largest frequency used
-  //double min_w; //The user input value of the smallest frequency used
-  //double max_w_out; //The maximum frequency we compute the convolution for
-  //double min_w_out; //The minimum frequency we compute the convolution for
-
   string XPSFILE; //The file where the XPS is input from
   string XASFILE; //The file where the XAS is input from
   string OUTFILE; //The file where the output is written to
@@ -163,20 +148,6 @@ int main(int argc, char * argv []){
     parseInt(label,value,"num_xas_steps",num_xas_steps);
   }
   infile.close();
-  
-  //Now we do value checking 
-  if(num_w_steps <= 2){
-    cout<<"Error: insufficient number of output frequency steps (<3)."<<endl;
-    return 0;
-  }
-  if(num_xps_steps <= 2){
-    cout<<"Error: insufficient number of input xps steps (<3)."<<endl;
-    return 0;
-  }
-  if(num_xas_steps <= 2){
-    cout<<"Error: insufficient number of input xas steps (<3)."<<endl;
-    return 0;
-  }
   
   //Allocation of data arrays
   xps_freqs = new double[num_xps_steps];
@@ -219,6 +190,7 @@ int main(int argc, char * argv []){
   //First we locate the first peak of the xas
   int xas_fp = locateFirstMax(num_xas_steps,xas);
   double xas_fpw = xas_freqs[xas_fp];
+  cout<<xas_fpw<<endl;
   //We subtract the peak frequency from each frequency
   for(int i = 0; i < num_xas_steps; i++){
     xas_freqs[i] -= xas_fpw;
@@ -232,14 +204,11 @@ int main(int argc, char * argv []){
   }
   //Now we reorder
   for(int i = 0; i < int(num_xps_steps/2.0); i++){
-    double tmp_w; //Used to store the frequency of the element we are swapping out
-    double tmp_x; //Used to store the xps of the element we are swapping out
+    double tmp_w = xps_freqs[i]; //Used to store the frequency of the element we are swapping out
+    double tmp_x = xps[i]; //Used to store the xps of the element we are swapping out
 
-    tmp_w = xps_freqs[i];
-    tmp_x = xps[i];
-
-    xps_freqs[i] = xps_freqs[num_xps_steps-1-i];  //We go from the back to the front, also flipping sign as we go
-    xps[i] = xps[num_xps_steps-1-i];  //We don't flip the sign for the xps value
+    xps_freqs[i] = xps_freqs[num_xps_steps-1-i];  
+    xps[i] = xps[num_xps_steps-1-i];  
 
     //Finally, we replace the last values with the temp values
     xps_freqs[num_xps_steps-1-i] = tmp_w;
@@ -249,14 +218,13 @@ int main(int argc, char * argv []){
   //Now we locate the max and subtract it off
   int xps_fp = locateFirstMax(num_xps_steps,xps);
   double xps_fpw = xps_freqs[xps_fp];
-
+  cout<<xps_fpw<<endl;
   //We subtract off using a loop
   for(int i = 0; i < num_xps_steps; i++){
     xps_freqs[i] -= xps_fpw;
   }
-
   //Now both functions should have their first peak at zero
-
+  
   //Next we must linearly interpolate them onto the same frequency arrays 
   //We interpolate the XAS onto the XPS grid
   //First we allocate the output arrays
@@ -269,9 +237,6 @@ int main(int argc, char * argv []){
   for(int i = 0; i < num_w_steps; i++){
     out_freqs[i] = xps_freqs[i];
   }
-
-  //And get the spacing of the grid
-  delta_w_out = out_freqs[1]-out_freqs[0];
 
   //Now we snap the xas onto this grid 
   //We use linear interpolation
@@ -296,20 +261,21 @@ int main(int argc, char * argv []){
   //Now all the data arrays have been filled, we may perform the convolution
   //We use a double loop to implement the integral
   //We do NOT use trapezoidal rule
-  
+  //Now we use the formula
+  //out(w) = int_{wmin}^{wmax} du' xps(u)xas(w-u)
+  //Because we have already interpolated xas and xps onto the same grid, we simply implement discrete convolution of 
+  //out[i] = sum_j delta xps[j]*xas[i-j]
+
+  double delta_w = out_freqs[1] - out_freqs[0];
   for(int i = 0; i < num_w_steps; i++){
     out[i] = 0.0; //We initialize to zero
-    //Now we use the formula
-    //out(w) = int_{wmin}^{wmax} du' xps(u)xas(w-u)
-    //Because we have already interpolated xas and xps onto the same grid, we simply implement discrete convolution of 
-    //out[i] = sum_j delta xps[j]*xas[i-j]
     for(int j = 0; j < num_w_steps; j++){
       //We only add if i - j > 0. Otherwise we approximate xas[- |i-j| ] = xas[0]
       if((i-j)<0){
-        out[i] += delta_w_out * xps[j] * xas_snapped[0];
+        out[i] += delta_w * xps[j] * xas_snapped[0];
       }
       else{
-        out[i] += delta_w_out * xps[j] * xas_snapped[i-j];
+        out[i] += delta_w * xps[j] * xas_snapped[i-j];
       }
     }
   }
