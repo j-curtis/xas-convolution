@@ -13,8 +13,6 @@ The flags are as follows (note the # beginning the lines so that they are not in
 # XPSFILE = (string) the file where the XPS data will be read in from
 # XASFILE = (string) the file where the XAS data will be read in from
 # OUTFILE = (string) the file where the output will be written to
-# num_xas_steps = (int) the number of entries in the xas input file. Must be >= 3.
-# num_xps_steps = (int) the number of entries in the xps input file. Must be >= 3.
 
 This file may be parsed with the values as below without issue (due to the flag - value nature of the parser).
 ################
@@ -26,7 +24,3 @@ XPSFILE ./xps.dat
 XASFILE ./xas.dat
 
 OUTFILE ./manybody_xas.dat 
-
-num_xps_steps 5000  
-
-num_xas_steps 4078 
