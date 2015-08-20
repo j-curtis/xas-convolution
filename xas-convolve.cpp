@@ -134,6 +134,8 @@ int main(int argc, char * argv []){
   string XASFILE; //The file where the XAS is input from
   string OUTFILE; //The file where the output is written to
   
+  cout<<"Parsing "<<argv[1]<<endl;
+
   //Now we parse for these values
   ifstream infile(argv[1]);
   string infileline;
@@ -143,15 +145,18 @@ int main(int argc, char * argv []){
     istringstream ss(infileline); //This is what actually breaks the line into tokens
     ss>>label>>value;
     //We use the variable name as a label 
-    parseStr(label,value,"SEPCFILE",XPSFILE);
+    parseStr(label,value,"SPECFILE",SPECFILE);
     parseStr(label,value,"XASFILE",XASFILE);
     parseStr(label,value,"OUTFILE",OUTFILE);
   }
   infile.close();
 
+  cout<<"Done"<<endl;
+  cout<<"Determining size of files"<<endl;
+
   //Automatic detection of array sizes
   //This increments a counter for every line in the file, which will yield the array size for us
-  ifstream xpssize(SPECFILE.c_str());
+  ifstream specsize(SPECFILE.c_str());
   string line;
   int speclinecounter = 0;
   while(getline(specsize,line)){
@@ -171,14 +176,20 @@ int main(int argc, char * argv []){
   xassize.close();
 
   num_xas_steps = xaslinecounter;
+
+  cout<<"Done"<<endl;
+  cout<<"SPECFILE has "<<num_spec_steps<<" entries"<<endl;
+  cout<<"XASFILE has "<<num_xas_steps<<" entries"<<endl;
   
   //Allocation of data arrays
   spec_freqs = new double[num_spec_steps];
   spec_den = new double[num_spec_steps];
-  spec_cum = new double[num_spec_cum];
+  spec_cum = new double[num_spec_steps];
 
   xas_freqs = new double[num_xas_steps];
   xas = new double[num_xas_steps];
+
+  cout<<"Reading in from "<<SPECFILE<<endl;
 
   //Open up SPEC and XAS files and read the data in
   ifstream specfile(SPECFILE.c_str());
@@ -197,6 +208,9 @@ int main(int argc, char * argv []){
     speccount++; //Increment the counter
   }
   specfile.close();  //Close the file
+
+  cout<<"Done"<<endl;
+  cout<<"Reading in from "<<XASFILE<<endl;
   
   ifstream xasfile(XASFILE.c_str());
   string xasline;
@@ -211,6 +225,9 @@ int main(int argc, char * argv []){
     xascount++; //Increment the counter
   }
   xasfile.close();  //Close the file
+
+  cout<<"Done"<<endl;
+  cout<<"Interpolating"<<endl;
 
   //Now we need to center the xas 
   int xas_fp = locateFirstMax(num_xas_steps,xas);
@@ -275,29 +292,46 @@ int main(int argc, char * argv []){
 
   }
 
+  cout<<"Done"<<endl;
+  cout<<"Convolving"<<endl;
+
   //Now all the data arrays have been filled, we may perform the convolution
-  //We use a double loop to implement the integral
-  //We do NOT use trapezoidal rule
-  //Now we use the formula
-  //out(w) = int_{wmin}^{wmax} du' xps(w-u)xas(u)
-  //Because we have already interpolated xas and xps onto the same grid, we simply implement discrete convolution of 
-  //out[i] = sum_j delta xps[i-j]*xas[j]
-  /*
-  for(int i = 0; i < num_w_steps; i++){
-    for(int j = 0; j <= i; j++){  //By only summing j up to i, we use xps[i-j] = 0.0 for i-j < 0
-      out[i] += delta_w * xps_snapped[i-j] * xas_snapped[j]; 
+  //We will use trapezoidal rule
+  //First we will need to determine the Fermi-energy
+  //Then we will need to compute the function
+  //MU(w) = 1/(1-spec_cum(Efermi-w))int_{Efermi-w}^infty A(w-u)mu(u)du
+  //Frist we must compute the fermi energy
+  //We will define the Fermi energy to be the first energy where the xas reaches a certain % of the first peak height
+  double fermi_peak_percent = .1;  //The percent of the first peak height we use to determine the Fermi energy
+
+  double xas_fph = xas[xas_fp]; //We don't need to use the snapped value because this won't be very much different from it
+
+  double fermi_value = xas_fph * fermi_peak_percent;  //This is the value that we will compare against to determine the fermi enrgy
+
+  int iFermi = 0; //The index of the fermi energy
+  double wFermi = 0;  //The fermi energy
+  double hFermi = 0;  //The height of the XAS at the Fermi energy
+
+  for(int i = 1; i < num_w_steps-1; i++){
+    if(xas_snapped[i] >= fermi_value){
+      //We have reached the peak, we save the values and break the loop
+      iFermi = i;
+      wFermi = out_freqs[iFermi];
+      hFermi = xas_snapped[iFermi];
+      break;
     }
   }
-  
-  
-  //Now we find the location of the first peak and we subtract off the frequency
-  int peak_index = locateFirstMax(num_w_steps,out);
- 
-  double peak_freq = out_freqs[peak_index]; //This is where the peak occurs
-  //We use this loop to output the results to the output file, to save on the number of loops
-  //We also use this loop to subtract off the first peaks location
-  */
-  
+
+  cout<<"Fermi index "<<iFermi<<endl;
+  cout<<"Fermi energy "<<wFermi<<" eV"<<endl;
+  cout<<"XAS(Fermi energy) "<<hFermi<<endl;
+
+  cout<<"Fermi threshold percent "<<fermi_peak_percent<<endl;
+  cout<<"Fermi threshold value "<<fermi_value<<endl;
+
+  cout<<"Done"<<endl;
+  cout<<"Printing"<<endl;
+
   ofstream outfile(OUTFILE.c_str());
   for(int i = 0; i < num_w_steps; i++){
     //We also print the snapped xas and xps
@@ -306,6 +340,8 @@ int main(int argc, char * argv []){
   //And we close the output file
   outfile.close();
   
+  cout<<"Finished."<<endl;
+
   //Delete allocated memory
   delete [] spec_freqs;
   delete [] spec_den;

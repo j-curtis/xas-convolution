@@ -19,7 +19,7 @@ This file may be parsed with the values as below without issue (due to the flag 
 ##PARAMETERS####
 ################
 
-XPSFILE ./xps.dat 
+SPECFILE ./spec.dat 
 
 XASFILE ./xas.dat
 
