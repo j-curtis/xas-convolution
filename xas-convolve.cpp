@@ -113,20 +113,24 @@ int main(int argc, char * argv []){
   
   //Now we define the variables we will use 
   int num_w_steps;//The number of points we compute the convolution for
-  int num_xps_steps;  //The number of points in the xps array
+  int num_spec_steps;  //The number of points in the xps array
   int num_xas_steps;  //The number of points in the xas array
   
   //These are the arrays for the input and output data
-  double * xps_freqs; //The frequencies for the input xps 
-  double * xps;   //The input xps values for each frequency
+  double * spec_freqs; //The frequencies for the input spectral function 
+  double * spec_den;   //The input spectral function density values for each frequency
+  double * spec_cum;
+  double * spec_den_snapped;  //The spectral density snapped to grid
+  double * spec_cum_snapped;  //The spectral cumulative snapped to grid   
+  
   double * xas_freqs; //The frequencies for the input xas
   double * xas;   //The input xas values for each frequency
-  double * xps_snapped; //This will be the xps interpolated onto the output grid size
   double * xas_snapped; //This will be the xas interpolated onto the output grid size
+  
   double * out_freqs; //The output frequencies
   double * out;   //The output values at each frequency
 
-  string XPSFILE; //The file where the XPS is input from
+  string SPECFILE; //The file where the spectral data is input from
   string XASFILE; //The file where the XAS is input from
   string OUTFILE; //The file where the output is written to
   
@@ -139,7 +143,7 @@ int main(int argc, char * argv []){
     istringstream ss(infileline); //This is what actually breaks the line into tokens
     ss>>label>>value;
     //We use the variable name as a label 
-    parseStr(label,value,"XPSFILE",XPSFILE);
+    parseStr(label,value,"SEPCFILE",XPSFILE);
     parseStr(label,value,"XASFILE",XASFILE);
     parseStr(label,value,"OUTFILE",OUTFILE);
   }
@@ -147,15 +151,15 @@ int main(int argc, char * argv []){
 
   //Automatic detection of array sizes
   //This increments a counter for every line in the file, which will yield the array size for us
-  ifstream xpssize(XPSFILE.c_str());
+  ifstream xpssize(SPECFILE.c_str());
   string line;
-  int xpslinecounter = 0;
-  while(getline(xpssize,line)){
-    xpslinecounter++;
+  int speclinecounter = 0;
+  while(getline(specsize,line)){
+    speclinecounter++;
   }
-  xpssize.close();
+  specsize.close();
 
-  num_xps_steps = xpslinecounter;
+  num_spec_steps = speclinecounter;
 
   //Same for xas
   //We use the same line string to save on memory and variable number
@@ -169,27 +173,30 @@ int main(int argc, char * argv []){
   num_xas_steps = xaslinecounter;
   
   //Allocation of data arrays
-  xps_freqs = new double[num_xps_steps];
-  xps = new double[num_xps_steps];
+  spec_freqs = new double[num_spec_steps];
+  spec_den = new double[num_spec_steps];
+  spec_cum = new double[num_spec_cum];
 
   xas_freqs = new double[num_xas_steps];
   xas = new double[num_xas_steps];
 
-  //Open up XPS and XAS files and read the data in
-  ifstream xpsfile(XPSFILE.c_str());
-  string xpsline;
-  int xpscount = 0; //To increment through each line of the array that we are filling
-  while(getline(xpsfile,xpsline)){
+  //Open up SPEC and XAS files and read the data in
+  ifstream specfile(SPECFILE.c_str());
+  string specline;
+  int speccount = 0; //To increment through each line of the array that we are filling
+  while(getline(specfile,specline)){
     //We now parse for 3 tokens, each a double 
     string token1, token2, token3;
-    istringstream ss(xpsline);  //Extracts each token
+    istringstream ss(specline);  //Extracts each token
     ss>>token1>>token2>>token3;
-    //We only want the first token (frequency), and the third token (xps)
-    xps_freqs[xpscount] = atof(token1.c_str()); //We must also convert it to a double 
-    xps[xpscount] = atof(token3.c_str()); //We must also convert this to a double 
-    xpscount++; //Increment the counter
+    //First token is frequency, second is density, third is cumulative
+    spec_freqs[speccount] = atof(token1.c_str());
+    spec_den[speccount] = atof(token2.c_str());
+    spec_cum[speccount] = atof(token3.c_str());
+    
+    speccount++; //Increment the counter
   }
-  xpsfile.close();  //Close the file
+  specfile.close();  //Close the file
   
   ifstream xasfile(XASFILE.c_str());
   string xasline;
@@ -205,40 +212,12 @@ int main(int argc, char * argv []){
   }
   xasfile.close();  //Close the file
 
-  //Now we need to flip the xps and center it and center the xas as well
-  //First we locate the first peak of the xas
+  //Now we need to center the xas 
   int xas_fp = locateFirstMax(num_xas_steps,xas);
   double xas_fpw = xas_freqs[xas_fp];
   //We subtract the peak frequency from each frequency
   for(int i = 0; i < num_xas_steps; i++){
     xas_freqs[i] -= xas_fpw;
-  }
-
-  //Now we reflect the xps about zero (so that the main peak is also the first peak)
-  //To do this, we first reflect the frequencies by multipliying by -1
-  //Then we re-order both the xps and xps_freqs array so that they read in the opposite order as they do now 
-  for(int i = 0; i < num_xps_steps; i++){
-    xps_freqs[i] *= -1.0;
-  }
-  //Now we reorder
-  for(int i = 0; i < int(num_xps_steps/2.0); i++){
-    double tmp_w = xps_freqs[i]; //Used to store the frequency of the element we are swapping out
-    double tmp_x = xps[i]; //Used to store the xps of the element we are swapping out
-
-    xps_freqs[i] = xps_freqs[num_xps_steps-1-i];  
-    xps[i] = xps[num_xps_steps-1-i];  
-
-    //Finally, we replace the last values with the temp values
-    xps_freqs[num_xps_steps-1-i] = tmp_w;
-    xps[num_xps_steps-1-i] = tmp_x;
-  }
-
-  //Now we locate the max and subtract it off
-  int xps_fp = locateFirstMax(num_xps_steps,xps);
-  double xps_fpw = xps_freqs[xps_fp];
-  //We subtract off using a loop
-  for(int i = 0; i < num_xps_steps; i++){
-    xps_freqs[i] -= xps_fpw;
   }
   //Now both functions should have their first peak at zero
 
@@ -247,27 +226,29 @@ int main(int argc, char * argv []){
   // h[n] = f[h]*g[n] 
   //With sizes Nh, Nf, and Ng, respectively, then 
   //Nh = Nf+Ng-1
-  //In this case, we will be using Nf=Ng=num_xps_steps
-  num_w_steps = 2*num_xps_steps-1;  //We use the same size array, but this new variable will make it more clear when we are looping
+  //In this case, we will be using Nf=Ng=num_spec_steps
+  num_w_steps = 2*num_spec_steps-1;  //We use the same size array, but this new variable will make it more clear when we are looping
 
   out_freqs = new double[num_w_steps];
   out = new double[num_w_steps];
 
-  //We generate the output frequencies by starting from xps_freqs[0] and using delta_w_xps to go 2*num_xps_steps-1
-  double delta_w = xps_freqs[1] - xps_freqs[0];
+  //We generate the output frequencies by starting from spec_freqs[0] and using delta_w_spec to go 2*num_spec_steps-1
+  double delta_w = spec_freqs[1] - spec_freqs[0];
 
   for(int i = 0; i < num_w_steps; i++){
-    out_freqs[i] = xps_freqs[0] + double(i)*delta_w;
+    out_freqs[i] = spec_freqs[0] + double(i)*delta_w;
     out[i] = 0.0; //We also initialize the ouput array values to zero, just in case they aren't already.
   }
 
 
-  //To implement this algorithm we snap the XAS and XPS onto the output grid
-  //For the XPS this is just zero padding the end of the array (so it has the correct size)
-  //For this XAS this is interpolating and then zero padding (or padding with the last value
+  //To implement this algorithm we snap the XAS and SPEC onto the output grid
+  //For the spectral function this is just zero padding the end of the array (so it has the correct size)
+  //We also padd the cumulative function with 1s where the spectral density is padded with zeros
+  //For this XAS this is interpolating and then padding with the last value
   //We use linear interpolation when appropriate
+  spec_den_snapped = new double[num_w_steps];
+  spec_cum_snapped = new double[num_w_steps];
   xas_snapped = new double[num_w_steps];
-  xps_snapped = new double[num_w_steps];
 
   for(int i = 0; i < num_w_steps; i++){
     //First we compute the snapped to grid index for the xas
@@ -283,11 +264,13 @@ int main(int argc, char * argv []){
     }
 
     //Copy the XPS if it is in the original range, otherwise we just zero pad
-    if(i<num_xps_steps){
-      xps_snapped[i] = xps[i];
-    }
+    if(i<num_spec_steps){
+      spec_den_snapped[i] = spec_den[i];
+      spec_cum_snapped[i] = spec_cum[i];
+    } 
     else{
-      xps_snapped[i] = 0.0;
+      spec_den_snapped[i] = 0.0;
+      spec_cum_snapped[i] = 1.0;
     }
 
   }
@@ -299,13 +282,13 @@ int main(int argc, char * argv []){
   //out(w) = int_{wmin}^{wmax} du' xps(w-u)xas(u)
   //Because we have already interpolated xas and xps onto the same grid, we simply implement discrete convolution of 
   //out[i] = sum_j delta xps[i-j]*xas[j]
-
+  /*
   for(int i = 0; i < num_w_steps; i++){
     for(int j = 0; j <= i; j++){  //By only summing j up to i, we use xps[i-j] = 0.0 for i-j < 0
       out[i] += delta_w * xps_snapped[i-j] * xas_snapped[j]; 
     }
   }
-
+  
   
   //Now we find the location of the first peak and we subtract off the frequency
   int peak_index = locateFirstMax(num_w_steps,out);
@@ -313,24 +296,29 @@ int main(int argc, char * argv []){
   double peak_freq = out_freqs[peak_index]; //This is where the peak occurs
   //We use this loop to output the results to the output file, to save on the number of loops
   //We also use this loop to subtract off the first peaks location
+  */
   
   ofstream outfile(OUTFILE.c_str());
   for(int i = 0; i < num_w_steps; i++){
     //We also print the snapped xas and xps
-    outfile<<out_freqs[i]-peak_freq<<" "<<out[i]<<" "<<xps_snapped[i]<<" "<<xas_snapped[i]<<endl;
+    outfile<<out_freqs[i]<<" "<<out[i]<<" "<<xas_snapped[i]<<" "<<spec_den_snapped[i]<<" "<<spec_cum_snapped[i]<<endl;
   }
   //And we close the output file
   outfile.close();
   
   //Delete allocated memory
-  delete [] xps_freqs;
-  delete [] xps;
+  delete [] spec_freqs;
+  delete [] spec_den;
+  delete [] spec_den_snapped;
+  delete [] spec_cum;
+  delete [] spec_cum_snapped;
+
   delete [] xas_freqs;
   delete [] xas;
+  delete [] xas_snapped;
+
   delete [] out_freqs;
   delete [] out;
-  delete [] xas_snapped;
-  delete [] xps_snapped;
   
   return 0;
 }

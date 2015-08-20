@@ -1,0 +1,8 @@
+*.[oa]	#Ignore any object files
+
+*.bin 	#Ignore any binary objects
+
+*.dat 	#Ignore data files
+
+!spec.dat	#Don't ignore spec.dat
+!xas.dat	#Don't ignore xas.dat
