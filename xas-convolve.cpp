@@ -175,10 +175,10 @@ int main(int argc, char * argv []){
 
   num_xas_steps = xaslinecounter;
 
-  cout<<"Done"<<endl;
   cout<<"   SPECFILE has "<<num_spec_steps<<" entries"<<endl;
   cout<<"   XASFILE has "<<num_xas_steps<<" entries"<<endl;
-  
+  cout<<"Done"<<endl;
+
   //Allocation of data arrays
   spec_freqs = new double[num_spec_steps];
   spec_den = new double[num_spec_steps];
@@ -355,6 +355,26 @@ int main(int argc, char * argv []){
       }
   }
 
+  //Now we shift the peak to zero and compute the area of the new curve
+  int out_fp = locateFirstMax(num_w_steps,out);
+  double out_fpw = out_freqs[out_fp];
+  double out_fph = out[out_fp];
+
+  cout<<"   out_fp "<<out_fp<<endl;
+  cout<<"   out_fpw "<<out_fpw<<" eV"<<endl;
+  cout<<"   out_fph "<<out_fph<<endl;
+
+  //And we compute the integral of the various curves 
+  double xas_area_before = 0.0;
+  double xas_area_after = 0.0;
+
+  for(int i = 1; i < num_w_steps; i++){
+    xas_area_before += 0.5 *delta_w*(xas_snapped[i-1]+xas_snapped[i]);
+    xas_area_after += 0.5*delta_w*(out[i-1]+out[i]);
+  }
+
+  cout<<"   xas_area_before "<<xas_area_before<<endl;
+  cout<<"   xas_area_after "<<xas_area_after<<endl;
 
   cout<<"Done"<<endl;
   cout<<"Printing"<<endl;
