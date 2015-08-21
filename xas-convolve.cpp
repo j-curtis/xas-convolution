@@ -119,9 +119,7 @@ int main(int argc, char * argv []){
   //These are the arrays for the input and output data
   double * spec_freqs; //The frequencies for the input spectral function 
   double * spec_den;   //The input spectral function density values for each frequency
-  double * spec_cum;
   double * spec_den_snapped;  //The spectral density snapped to grid
-  double * spec_cum_snapped;  //The spectral cumulative snapped to grid   
   
   double * xas_freqs; //The frequencies for the input xas
   double * xas;   //The input xas values for each frequency
@@ -184,7 +182,6 @@ int main(int argc, char * argv []){
   //Allocation of data arrays
   spec_freqs = new double[num_spec_steps];
   spec_den = new double[num_spec_steps];
-  spec_cum = new double[num_spec_steps];
 
   xas_freqs = new double[num_xas_steps];
   xas = new double[num_xas_steps];
@@ -196,14 +193,13 @@ int main(int argc, char * argv []){
   string specline;
   int speccount = 0; //To increment through each line of the array that we are filling
   while(getline(specfile,specline)){
-    //We now parse for 3 tokens, each a double 
+    //We now parse for 2 tokens, each a double 
     string token1, token2, token3;
     istringstream ss(specline);  //Extracts each token
     ss>>token1>>token2>>token3;
-    //First token is frequency, second is density, third is cumulative
+    //First token is frequency, second is density, third is cumulative (we ignore)
     spec_freqs[speccount] = atof(token1.c_str());
     spec_den[speccount] = atof(token2.c_str());
-    spec_cum[speccount] = atof(token3.c_str());
     
     speccount++; //Increment the counter
   }
@@ -260,11 +256,9 @@ int main(int argc, char * argv []){
 
   //To implement this algorithm we snap the XAS and SPEC onto the output grid
   //For the spectral function this is just zero padding the end of the array (so it has the correct size)
-  //We also padd the cumulative function with 1s where the spectral density is padded with zeros
   //For this XAS this is interpolating and then padding with the last value
   //We use linear interpolation when appropriate
   spec_den_snapped = new double[num_w_steps];
-  spec_cum_snapped = new double[num_w_steps];
   xas_snapped = new double[num_w_steps];
 
   for(int i = 0; i < num_w_steps; i++){
@@ -283,11 +277,9 @@ int main(int argc, char * argv []){
     //Copy the XPS if it is in the original range, otherwise we just zero pad
     if(i<num_spec_steps){
       spec_den_snapped[i] = spec_den[i];
-      spec_cum_snapped[i] = spec_cum[i];
     } 
     else{
       spec_den_snapped[i] = 0.0;
-      spec_cum_snapped[i] = 1.0;
     }
 
   }
@@ -332,41 +324,34 @@ int main(int argc, char * argv []){
   cout<<"Fermi threshold value "<<fermi_value<<endl;
 
   //Now that we have the Fermi energy, we can calculate the convolution and normalization
-  //We do these seperately
-  //First, we print the normalization
+  //We do these in one step, to save on maemory and avoid overflow errors
   //We have 
-  //N(w) = 1/(integral_{-infinity}^{w-EFermi}A(w')dw')
-  double * normalization = new double[num_w_steps];
-  //We will use the cumualtive distribution to compute this 
-  //We evaluate the cumulative distribution at w-Efermi = i - iFermi
-  //If this is less then zero, the normalization is analytically infinite, where as the integral is analytically zero and their product is convergent
-  //To handle this we will set the denominator to a very small number if w<Ef and then proceed
+  //We have to compute 
+  // Mu(w) = integral_{-infinity}^{w-Ef} dw' mu(w-w')A(w')/( integral_{-infinity}^{w-Ef} A(w'')dw'' ) dw'
+  //First we compute the function 
+  //B(w) := 1.0/integral_{-infinity}^{w} A(w')dw'
+  //Later we will enforce the condition that B(w) = 0 for w<w_min
+  double * normalize = new double[num_w_steps];
   for(int i = 0; i < num_w_steps; i++){
-    if (i<=iFermi){
-      normalization[i] = 1e-14; //A very small number
-    }
-    else{
-      normalization = 1.0/spec_cum_snapped[i];  //Otherwise we divide by the cumulative distribution
+    normalize[i] = 0.0;
+
+    for(int j = 1; i <= i; j++){
+      normalize[i] += 0.5 * delta_w * (spec_den_snapped[i]+spec_den_snapped[i-1]);
     }
   }
 
-  //And now we compute the numerator
-  //It is given by 
-  //integral_{-infty}^{w-Ef} A(w')mu(w-w')dw'
-  double numerator = new double[num_w_steps];
-
-  //We compute this using a trapezoidal rule integration loop
-  //Remember, we only integrate up to the fermi energy
-  //Thus out summation loop only sums up to j = i-iFermi
-  //We also start out sum at one. Thus, if the i<iFermi there, it will not add any terms and we will have a value of zero
-  //We also use this loop to compute the product out=numerator*normalization for each index i 
+  //Now we compute the integral above 
   for(int i = 0; i < num_w_steps; i++){
-    numerator[i] = 0.0;
-    for(int j = 1; j <= i-iFermi; j++){
-      numerator[i] += 0.5*delta_w*(spec_den_snapped[j  ]*xas_snapped[i-j  ] + spec_den_snapped[j-1]*xas_snapped[i-j-1]);
-    }
-    out[i] = numerator[i]*normalization[i];
+    for(int j =1; j <= i-iFermi; j++){
+      //We integrate up to w-Efermi
+      //We also evaluate the normalization at i-iFermi provided this is greater than zero
+      //i is equivalent to the frequency w
+      //So we sample through for each i
+      out[i] += 0.5 * delta_w * ( xas_snapped[i-j  ]*spec_den_snapped[j  ]*normalize[j  ] + 
+                                  xas_snapped[i-j+1]*spec_den_snapped[j-1]*normalize[j-1]);
+      }
   }
+
 
   cout<<"Done"<<endl;
   cout<<"Printing"<<endl;
@@ -374,7 +359,7 @@ int main(int argc, char * argv []){
   ofstream outfile(OUTFILE.c_str());
   for(int i = 0; i < num_w_steps; i++){
     //We also print the snapped xas and xps
-    outfile<<out_freqs[i]<<" "<<out[i]<<" "<<xas_snapped[i]<<" "<<spec_den_snapped[i]<<" "<<spec_cum_snapped[i]<<" "<<normalization[i]<<" "<<numerator[i]<<endl;
+    outfile<<out_freqs[i]<<" "<<out[i]<<" "<<xas_snapped[i]<<" "<<spec_den_snapped[i]<<endl;
   }
   //And we close the output file
   outfile.close();
@@ -385,8 +370,6 @@ int main(int argc, char * argv []){
   delete [] spec_freqs;
   delete [] spec_den;
   delete [] spec_den_snapped;
-  delete [] spec_cum;
-  delete [] spec_cum_snapped;
 
   delete [] xas_freqs;
   delete [] xas;
@@ -394,9 +377,8 @@ int main(int argc, char * argv []){
 
   delete [] out_freqs;
   delete [] out;
-  
-  delete [] normalization;
-  delete [] numerator;
+ 
+  delete [] normalize;
 
   return 0;
 }
