@@ -299,7 +299,9 @@ int main(int argc, char * argv []){
   //We will use trapezoidal rule
   //First we will need to determine the Fermi-energy
   //Then we will need to compute the function
-  //MU(w) = 1/(1-spec_cum(Efermi-w))int_{Efermi-w}^infty A(w-u)mu(u)du
+
+  //MU(w) = (integral_{-infintiy}^{w-EFermi} A(w')mu(w-w') dw')/(integral_{-infinity}^{w-EFermi}A(w')dw')
+
   //Frist we must compute the fermi energy
   //We will define the Fermi energy to be the first energy where the xas reaches a certain % of the first peak height
   double fermi_peak_percent = .1;  //The percent of the first peak height we use to determine the Fermi energy
@@ -326,8 +328,45 @@ int main(int argc, char * argv []){
   cout<<"Fermi energy "<<wFermi<<" eV"<<endl;
   cout<<"XAS(Fermi energy) "<<hFermi<<endl;
 
-  cout<<"Fermi threshold percent "<<fermi_peak_percent<<endl;
+  cout<<"Fermi threshold percent "<<fermi_peak_percent*100<<"%"<<endl;
   cout<<"Fermi threshold value "<<fermi_value<<endl;
+
+  //Now that we have the Fermi energy, we can calculate the convolution and normalization
+  //We do these seperately
+  //First, we print the normalization
+  //We have 
+  //N(w) = 1/(integral_{-infinity}^{w-EFermi}A(w')dw')
+  double * normalization = new double[num_w_steps];
+  //We will use the cumualtive distribution to compute this 
+  //We evaluate the cumulative distribution at w-Efermi = i - iFermi
+  //If this is less then zero, the normalization is analytically infinite, where as the integral is analytically zero and their product is convergent
+  //To handle this we will set the denominator to a very small number if w<Ef and then proceed
+  for(int i = 0; i < num_w_steps; i++){
+    if (i<=iFermi){
+      normalization[i] = 1e-14; //A very small number
+    }
+    else{
+      normalization = 1.0/spec_cum_snapped[i];  //Otherwise we divide by the cumulative distribution
+    }
+  }
+
+  //And now we compute the numerator
+  //It is given by 
+  //integral_{-infty}^{w-Ef} A(w')mu(w-w')dw'
+  double numerator = new double[num_w_steps];
+
+  //We compute this using a trapezoidal rule integration loop
+  //Remember, we only integrate up to the fermi energy
+  //Thus out summation loop only sums up to j = i-iFermi
+  //We also start out sum at one. Thus, if the i<iFermi there, it will not add any terms and we will have a value of zero
+  //We also use this loop to compute the product out=numerator*normalization for each index i 
+  for(int i = 0; i < num_w_steps; i++){
+    numerator[i] = 0.0;
+    for(int j = 1; j <= i-iFermi; j++){
+      numerator[i] += 0.5*delta_w*(spec_den_snapped[j  ]*xas_snapped[i-j  ] + spec_den_snapped[j-1]*xas_snapped[i-j-1]);
+    }
+    out[i] = numerator[i]*normalization[i];
+  }
 
   cout<<"Done"<<endl;
   cout<<"Printing"<<endl;
@@ -335,7 +374,7 @@ int main(int argc, char * argv []){
   ofstream outfile(OUTFILE.c_str());
   for(int i = 0; i < num_w_steps; i++){
     //We also print the snapped xas and xps
-    outfile<<out_freqs[i]<<" "<<out[i]<<" "<<xas_snapped[i]<<" "<<spec_den_snapped[i]<<" "<<spec_cum_snapped[i]<<endl;
+    outfile<<out_freqs[i]<<" "<<out[i]<<" "<<xas_snapped[i]<<" "<<spec_den_snapped[i]<<" "<<spec_cum_snapped[i]<<" "<<normalization[i]<<" "<<numerator[i]<<endl;
   }
   //And we close the output file
   outfile.close();
@@ -356,5 +395,8 @@ int main(int argc, char * argv []){
   delete [] out_freqs;
   delete [] out;
   
+  delete [] normalization;
+  delete [] numerator;
+
   return 0;
 }
