@@ -90,10 +90,10 @@ double * genGrid(int Num, double min, double max){
 int locateFirstMax(int size, double * values){
   for(int i = 2; i < size-2; i++){
     //We step through and check to see if an element is greater than all of its neighbors
-    //To minimize floating point erros we will multiply each element by 10^12 and then compare the results cast as integers
+    //To minimize floating point erros we will multiply each element by 10^12 and then compare the results cast as longs (too avoid overflow for type int)
     //We do this by multiplying by 10000 and then casting as an int and then comparing the integers
-    bool nneighbor_check = ( ( int(1e12*values[i]) > int(1e12*values[i-1]) ) && ( int(1e12*values[i]) > int(1e12*values[i+1]) ) );
-    bool nnneighbor_check = ( ( int(1e12*values[i]) > int(1e12*values[i-2]) ) && ( int(1e12*values[i]) > int(1e12*values[i+2]) ) );
+    bool nneighbor_check = ( ( long(1e12*values[i]) > long(1e12*values[i-1]) ) && ( long(1e12*values[i]) > long(1e12*values[i+1]) ) );
+    bool nnneighbor_check = ( ( long(1e12*values[i]) > long(1e12*values[i-2]) ) && ( long(1e12*values[i]) > long(1e12*values[i+2]) ) );
 
     if(nneighbor_check && nnneighbor_check){
       return i;
@@ -316,6 +316,12 @@ int main(int argc, char * argv []){
     }
   }
 
+  //Note that we cannot use w[i] - Efermi = w[i]-w[iFermi] = w[i-iFermi] because 
+  //w[i]-w[iFermi] != w[i-iFermi]. To see this, simply consider w[i]=w[iFermi]. 
+  //Then w[i]-w[iFermi] = 0 
+  //But w[i-iFermi] = w[0] = wmin <<0 != 0
+  //The correct expression for w[i]-w[iFermi] mustbe obtained by snapping w[i]-wFermi onto the w grid 
+
   cout<<"   Fermi index "<<iFermi<<endl;
   cout<<"   Fermi energy "<<wFermi<<" eV"<<endl;
   cout<<"   XAS(Fermi energy) "<<hFermi<<endl;
@@ -331,27 +337,41 @@ int main(int argc, char * argv []){
   //First we compute the function 
   //B(w) := 1.0/integral_{-infinity}^{w-Efermi} A(w')dw'
   double * normalize = new double[num_w_steps];
+
   for(int i = 0; i < num_w_steps; i++){
     normalize[i] = 0.0;
-    for(int j = 1; j <= i-iFermi; j++){
+
+    //Now we calculate w[i]-wFermi = w[i'] by using the snap to grid method 
+    int index = snapToGrid(out_freqs[i] - wFermi,num_w_steps,out_freqs);
+    //This is the index of the frequency w[i] - wFermi
+    //WE integrate up to this index
+
+    for(int j = 1; j <= index; j++){
       normalize[i] += 0.5 * delta_w * (spec_den_snapped[j]+spec_den_snapped[j-1]);
     }
-    if(i>iFermi){ 
+    
+    //Finally, we have normalize = 1/integral so we invert this
+    //The only case where integral is zero is if index=0
+    //This can only happen if w-wFermi <= w[1]
+    //In this case, we will set normalize = 0.0
+    //A simple way to do this is: if integral = 0, normalize = 0. Else, normalize = 1/integral
+    if(normalize[i] != 0.0){
       normalize[i] = 1.0/normalize[i];
     }
   }
-
-  cout<<"   Computed normalization..."<<endl;
-
+  
   //Now we compute the integral above 
   for(int i = 0; i < num_w_steps; i++){
-    for(int j =1; j <= i-iFermi; j++){
-      //We integrate up to w-Efermi
-      //We also evaluate the normalization at i-iFermi provided this is greater than zero
-      //i is equivalent to the frequency w
-      //So we sample through for each i
-      out[i] += 0.5 * delta_w * ( xas_snapped[i-j  ]*spec_den_snapped[j  ]*normalize[j  ] + 
-                                  xas_snapped[i-j+1]*spec_den_snapped[j-1]*normalize[j-1]);
+
+    //Again, we have to compute the index of w-wFermi
+    int index = snapToGrid(out_freqs[i]-wFermi,num_w_steps,out_freqs);
+
+    for(int j =1; j <= index; j++){
+      //We integrate up to w-Efermi = w[index]
+      //We also evaluate the normalization at w-wFermi = w[index]
+      //However, mu(w-w') is evaluated at w[i] since this is not shifted by the Fermi energy
+      out[i] += 0.5 * delta_w * ( xas_snapped[i-j  ]*spec_den_snapped[j  ]*normalize[index] + 
+                                  xas_snapped[i-j+1]*spec_den_snapped[j-1]*normalize[index]);
       }
   }
 
