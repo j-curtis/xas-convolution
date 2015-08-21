@@ -176,8 +176,8 @@ int main(int argc, char * argv []){
   num_xas_steps = xaslinecounter;
 
   cout<<"Done"<<endl;
-  cout<<"SPECFILE has "<<num_spec_steps<<" entries"<<endl;
-  cout<<"XASFILE has "<<num_xas_steps<<" entries"<<endl;
+  cout<<"   SPECFILE has "<<num_spec_steps<<" entries"<<endl;
+  cout<<"   XASFILE has "<<num_xas_steps<<" entries"<<endl;
   
   //Allocation of data arrays
   spec_freqs = new double[num_spec_steps];
@@ -316,12 +316,12 @@ int main(int argc, char * argv []){
     }
   }
 
-  cout<<"Fermi index "<<iFermi<<endl;
-  cout<<"Fermi energy "<<wFermi<<" eV"<<endl;
-  cout<<"XAS(Fermi energy) "<<hFermi<<endl;
+  cout<<"   Fermi index "<<iFermi<<endl;
+  cout<<"   Fermi energy "<<wFermi<<" eV"<<endl;
+  cout<<"   XAS(Fermi energy) "<<hFermi<<endl;
 
-  cout<<"Fermi threshold percent "<<fermi_peak_percent*100<<"%"<<endl;
-  cout<<"Fermi threshold value "<<fermi_value<<endl;
+  cout<<"   Fermi threshold percent "<<fermi_peak_percent*100<<"%"<<endl;
+  cout<<"   Fermi threshold value "<<fermi_value<<endl;
 
   //Now that we have the Fermi energy, we can calculate the convolution and normalization
   //We do these in one step, to save on maemory and avoid overflow errors
@@ -334,11 +334,13 @@ int main(int argc, char * argv []){
   double * normalize = new double[num_w_steps];
   for(int i = 0; i < num_w_steps; i++){
     normalize[i] = 0.0;
-
-    for(int j = 1; i <= i; j++){
+    for(int j = 1; j <= i; j++){
       normalize[i] += 0.5 * delta_w * (spec_den_snapped[i]+spec_den_snapped[i-1]);
     }
+    normalize[i] = 1.0/normalize[i];
   }
+
+  cout<<"   Computed normalization..."<<endl;
 
   //Now we compute the integral above 
   for(int i = 0; i < num_w_steps; i++){
