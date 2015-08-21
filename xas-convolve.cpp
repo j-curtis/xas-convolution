@@ -359,7 +359,7 @@ int main(int argc, char * argv []){
       normalize[i] = 1.0/normalize[i];
     }
   }
-  
+
   //Now we compute the integral above 
   for(int i = 0; i < num_w_steps; i++){
 
@@ -380,9 +380,30 @@ int main(int argc, char * argv []){
   double out_fpw = out_freqs[out_fp];
   double out_fph = out[out_fp];
 
-  cout<<"   out_fp "<<out_fp<<endl;
-  cout<<"   out_fpw "<<out_fpw<<" eV"<<endl;
-  cout<<"   out_fph "<<out_fph<<endl;
+  cout<<endl;
+  cout<<"   out_first_peak "<<out_fp<<endl;
+  cout<<"   out_first_peak_w "<<out_fpw<<" eV"<<endl;
+  cout<<"   out_first_peak_height "<<out_fph<<endl;
+
+  //we find the area of the global max, since the first max may not be a reliable measure of the global max
+  int out_gp = 0;
+  double out_gpw = out_freqs[0];
+  double out_gph = out[0];
+
+  for(int i = 0; i < num_w_steps; i++){
+    if(out[i] > out_gph){
+      out_gp = i;
+      out_gpw = out_freqs[i];
+      out_gph = out[i];
+    }
+  }
+
+  //Now that we have found the largest max, we print them out
+  cout<<endl;
+  cout<<"   out_global_peak "<<out_gp<<endl;
+  cout<<"   out_global_peak_w "<<out_gpw<<endl;
+  cout<<"   out_global_peak_height "<<out_gph<<endl;
+  cout<<endl;
 
   //And we compute the integral of the various curves 
   double xas_area_before = 0.0;
