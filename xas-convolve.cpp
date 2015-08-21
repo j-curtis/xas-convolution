@@ -329,15 +329,16 @@ int main(int argc, char * argv []){
   //We have to compute 
   // Mu(w) = integral_{-infinity}^{w-Ef} dw' mu(w-w')A(w')/( integral_{-infinity}^{w-Ef} A(w'')dw'' ) dw'
   //First we compute the function 
-  //B(w) := 1.0/integral_{-infinity}^{w} A(w')dw'
-  //Later we will enforce the condition that B(w) = 0 for w<w_min
+  //B(w) := 1.0/integral_{-infinity}^{w-Efermi} A(w')dw'
   double * normalize = new double[num_w_steps];
   for(int i = 0; i < num_w_steps; i++){
     normalize[i] = 0.0;
-    for(int j = 1; j <= i; j++){
-      normalize[i] += 0.5 * delta_w * (spec_den_snapped[i]+spec_den_snapped[i-1]);
+    for(int j = 1; j <= i-iFermi; j++){
+      normalize[i] += 0.5 * delta_w * (spec_den_snapped[j]+spec_den_snapped[j-1]);
     }
-    normalize[i] = 1.0/normalize[i];
+    if(i>iFermi){ 
+      normalize[i] = 1.0/normalize[i];
+    }
   }
 
   cout<<"   Computed normalization..."<<endl;
@@ -361,7 +362,7 @@ int main(int argc, char * argv []){
   ofstream outfile(OUTFILE.c_str());
   for(int i = 0; i < num_w_steps; i++){
     //We also print the snapped xas and xps
-    outfile<<out_freqs[i]<<" "<<out[i]<<" "<<xas_snapped[i]<<" "<<spec_den_snapped[i]<<endl;
+    outfile<<out_freqs[i]<<" "<<out[i]<<" "<<xas_snapped[i]<<" "<<spec_den_snapped[i]<<" "<<normalize[i]<<endl;
   }
   //And we close the output file
   outfile.close();
