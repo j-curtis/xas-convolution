@@ -358,6 +358,10 @@ int main(int argc, char * argv []){
     if(normalize[i] != 0.0){
       normalize[i] = 1.0/normalize[i];
     }
+    else{
+      normalize[i] = 1.0e14;
+    }
+
   }
 
   //Now we compute the integral above 
@@ -368,10 +372,9 @@ int main(int argc, char * argv []){
 
     for(int j =1; j <= index; j++){
       //We integrate up to w-Efermi = w[index]
-      //We also evaluate the normalization at w-wFermi = w[index]
       //However, mu(w-w') is evaluated at w[i] since this is not shifted by the Fermi energy
-      out[i] += 0.5 * delta_w * ( xas_snapped[i-j  ]*spec_den_snapped[j  ]*normalize[index] + 
-                                  xas_snapped[i-j+1]*spec_den_snapped[j-1]*normalize[index]);
+      out[i] += 0.5 * delta_w * ( xas_snapped[i-j  ]*spec_den_snapped[j  ]*normalize[i] + 
+                                  xas_snapped[i-j+1]*spec_den_snapped[j-1]*normalize[i]);
       }
   }
 
@@ -423,7 +426,8 @@ int main(int argc, char * argv []){
   ofstream outfile(OUTFILE.c_str());
   for(int i = 0; i < num_w_steps; i++){
     //We also print the snapped xas and xps
-    outfile<<out_freqs[i]<<" "<<out[i]<<" "<<xas_snapped[i]<<" "<<spec_den_snapped[i]<<" "<<normalize[i]<<endl;
+
+    outfile<<out_freqs[i]<<" "<<out[i]<<" "<<xas_snapped[i]<<" "<<spec_den_snapped[i]<<" "<<normalize[i]<<" "<<normalize[i]<<endl;
   }
   //And we close the output file
   outfile.close();
