@@ -14,7 +14,7 @@ The SPEC file should have 3 columns. The first is the frequency, the second is t
 ## Usage
 The program simply accepts a parameterfile with the name of the input and output files. From there it will automatically detect the size of the arrays for the data sets. It will also automatically perform peak shifting so that the XAS spectrum has it's first peak occuring at zero. It expects the spectral function to already have its main peak at zero, with the satellites to the right (higher energies).
 
-The output file will have 4 columns, the first is frequency, the second is the convolution, the third is the interpolated XAS, and the last column is the interpolated spectral density.
+The output file will have 5 columns, the first is frequency, the second is the convolution, the third is the interpolated XAS, the fourth column is the interpolated spectral density. The fifth column is the normalization as a function of frequency.
 
 It will also print out useful diagnostic information as it runs, so you may want to dump the standard output into a log file.
 
