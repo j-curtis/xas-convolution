@@ -102,6 +102,21 @@ int locateFirstMax(int size, double * values){
   return 0;
 }
 
+//This function will locate the global max of an array using a simple loop through elements
+int locateGlobalMax(int size, double * values){
+    int index = 0;
+    int val = values[index];
+    
+    //IF we find a bigger value, we save it
+    for(int i = 0; i < size; i++){
+        if(values[i]>val){
+            index = i;
+            val = values[index];
+        }
+    }
+
+    return index;
+}
 
 //Now the main method
 int main(int argc, char * argv []){
@@ -295,12 +310,14 @@ int main(int argc, char * argv []){
   //MU(w) = (integral_{-infintiy}^{w-EFermi} A(w')mu(w-w') dw')/(integral_{-infinity}^{w-EFermi}A(w')dw')
 
   //Frist we must compute the fermi energy
-  //We will define the Fermi energy to be the first energy where the xas reaches a certain % of the first peak height
+  //We will define the Fermi energy to be the first energy where the xas reaches a certain % of the max peak height
   double fermi_peak_percent = .1;  //The percent of the first peak height we use to determine the Fermi energy
 
-  double xas_fph = xas[xas_fp]; //We don't need to use the snapped value because this won't be very much different from it
+  int xas_gp = locateGlobalMax(num_w_steps,xas_snapped);
+    
+  double xas_gph = xas_snapped[xas_gp]; //We don't need to use the snapped value because this won't be very much different from it
 
-  double fermi_value = xas_fph * fermi_peak_percent;  //This is the value that we will compare against to determine the fermi enrgy
+  double fermi_value = xas_gph * fermi_peak_percent;  //This is the value that we will compare against to determine the fermi enrgy
 
   int iFermi = 0; //The index of the fermi energy
   double wFermi = 0;  //The fermi energy
@@ -389,17 +406,9 @@ int main(int argc, char * argv []){
   cout<<"   out_first_peak_height "<<out_fph<<endl;
 
   //we find the area of the global max, since the first max may not be a reliable measure of the global max
-  int out_gp = 0;
-  double out_gpw = out_freqs[0];
-  double out_gph = out[0];
-
-  for(int i = 0; i < num_w_steps; i++){
-    if(out[i] > out_gph){
-      out_gp = i;
-      out_gpw = out_freqs[i];
-      out_gph = out[i];
-    }
-  }
+  int out_gp = locateGlobalMax(num_w_steps,out_freqs);
+  double out_gpw = out_freqs[out_gp];
+  double out_gph = out[out_gp];
 
   //Now that we have found the largest max, we print them out
   cout<<endl;

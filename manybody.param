@@ -1,0 +1,4 @@
+SPECFILE spec.dat
+XASFILE xas.dat
+OUTFILE manybody_test.dat
+fermi_ratio .2
